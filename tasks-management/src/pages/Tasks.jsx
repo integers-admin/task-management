@@ -100,7 +100,7 @@ export default function Tasks() {
   const [confirm, setConfirm] = useState(null);
   const [deleting, setDeleting] = useState(false);
   const [catModalOpen, setCatModalOpen] = useState(false);
-  const [rejectModal, setRejectModal] = useState(null);   // task to reject
+  const [rejectModal, setRejectModal] = useState(null); // task to reject
   const [rejectNote, setRejectNote] = useState("");
   const [rejecting, setRejecting] = useState(false);
   const [escalateModal, setEscalateModal] = useState(null);
@@ -113,7 +113,10 @@ export default function Tasks() {
     loading,
     error,
     refetch,
-  } = useFetch(() => tasksApi.list({ ...deptParam(), period }), [activeDept, period]);
+  } = useFetch(
+    () => tasksApi.list({ ...deptParam(), period }),
+    [activeDept, period],
+  );
 
   // const deptId = currentUser?.department_id
   // const { data: categories  = [], refetch: refetchCats } = useFetch(
@@ -192,12 +195,15 @@ export default function Tasks() {
 
   // Admins bypass approval, everyone else (including manager/lead) submits for approval
   const canUpdateProgress = (task) =>
-    task.assignedTo === currentUser.name && currentUser.role !== 'admin';
+    task.assignedTo === currentUser.name && currentUser.role !== "admin";
 
   async function handleApprove(task) {
     try {
       await tasksApi.approve(task.id, { approvedBy: currentUser.name });
-      toast({ message: `"${task.description}" marked as Completed`, type: "success" });
+      toast({
+        message: `"${task.description}" marked as Completed`,
+        type: "success",
+      });
       refetch();
     } catch (e) {
       toast({ message: e.message, type: "error" });
@@ -216,8 +222,14 @@ export default function Tasks() {
     }
     setRejecting(true);
     try {
-      await tasksApi.reject(rejectModal.id, { rejected_by: currentUser.name, note: rejectNote.trim() });
-      toast({ message: "Submission rejected — task moved back to In Progress", type: "info" });
+      await tasksApi.reject(rejectModal.id, {
+        rejected_by: currentUser.name,
+        note: rejectNote.trim(),
+      });
+      toast({
+        message: "Submission rejected — task moved back to In Progress",
+        type: "info",
+      });
       setRejectModal(null);
       refetch();
     } catch (e) {
@@ -229,16 +241,17 @@ export default function Tasks() {
 
   async function handleBlockerResponse(task, action) {
     try {
-      await tasksApi.blockerResponse(task.id, { action })
+      await tasksApi.blockerResponse(task.id, { action });
       toast({
-        message: action === 'accept'
-          ? 'Blocker acknowledged — assignee notified'
-          : 'Task moved back to In Progress',
-        type: 'success',
-      })
-      refetch()
+        message:
+          action === "accept"
+            ? "Blocker acknowledged — assignee notified"
+            : "Task moved back to In Progress",
+        type: "success",
+      });
+      refetch();
     } catch (e) {
-      toast({ message: e.message, type: 'error' })
+      toast({ message: e.message, type: "error" });
     }
   }
 
@@ -250,10 +263,13 @@ export default function Tasks() {
     setEscalating(true);
     try {
       await tasksApi.escalate(escalateModal.id, {
-        reason:   escalateReason.trim(),
+        reason: escalateReason.trim(),
         md_email: escalateMdEmail.trim() || null,
       });
-      toast({ message: "Task escalated — MD has been notified.", type: "success" });
+      toast({
+        message: "Task escalated — MD has been notified.",
+        type: "success",
+      });
       setEscalateModal(null);
     } catch (e) {
       toast({ message: e.message, type: "error" });
@@ -263,12 +279,27 @@ export default function Tasks() {
   }
 
   function canRespondToBlocker(task) {
-    if (!can('edit-task')) return false
-    if (currentUser.role === 'admin') return true
-    if (task.createdBy === currentUser.name) return true
-    const chain = task.delegationChain ?? []
-    return chain.some(entry => entry.from === currentUser.name)
+    if (!can("edit-task")) return false;
+    if (currentUser.role === "admin") return true;
+    if (task.createdBy === currentUser.name) return true;
+    const chain = task.delegationChain ?? [];
+    return chain.some((entry) => entry.from === currentUser.name);
   }
+
+  const canApproveTask = (task) => {
+    const isDelegator = (task.delegationChain ?? []).some(
+      (entry) => entry.from === currentUser.name,
+    );
+
+    if (currentUser.role === "admin") return true;
+    if (currentUser.role === "manager") return true;
+
+    if (currentUser.role === "lead") {
+      return task.createdBy === currentUser.name || isDelegator;
+    }
+
+    return false;
+  };
 
   if (error) {
     return (
@@ -390,13 +421,23 @@ export default function Tasks() {
         {/* Due date sort toggle */}
         <button
           className="btn-ghost"
-          style={{ padding: "7px 12px", fontSize: 12.5, display: "flex", alignItems: "center", gap: 5, flexShrink: 0 }}
-          onClick={() => setSortDir(d => d === "asc" ? "desc" : "asc")}
+          style={{
+            padding: "7px 12px",
+            fontSize: 12.5,
+            display: "flex",
+            alignItems: "center",
+            gap: 5,
+            flexShrink: 0,
+          }}
+          onClick={() => setSortDir((d) => (d === "asc" ? "desc" : "asc"))}
           title="Sort by due date"
         >
           <i className="fa-regular fa-calendar" />
           Due
-          <i className={`fa-solid fa-arrow-${sortDir === "asc" ? "up" : "down"}`} style={{ fontSize: 10 }} />
+          <i
+            className={`fa-solid fa-arrow-${sortDir === "asc" ? "up" : "down"}`}
+            style={{ fontSize: 10 }}
+          />
         </button>
 
         {(search || statusF || catF || clientTypeF) && (
@@ -596,10 +637,12 @@ export default function Tasks() {
                         style={{
                           fontSize: 12.5,
                           whiteSpace: "nowrap",
-                          color: overdue || completedLate
-                            ? "var(--color-orange)"
-                            : "var(--color-ink-muted)",
-                          fontWeight: overdue || completedLate ? 600 : undefined,
+                          color:
+                            overdue || completedLate
+                              ? "var(--color-orange)"
+                              : "var(--color-ink-muted)",
+                          fontWeight:
+                            overdue || completedLate ? 600 : undefined,
                         }}
                       >
                         {fmtDate(task.dueDate)}
@@ -629,7 +672,7 @@ export default function Tasks() {
                     </td>
 
                     {/* Actions */}
-                    <td style={{ whiteSpace: 'nowrap' }}>
+                    <td style={{ whiteSpace: "nowrap" }}>
                       <div
                         style={{
                           display: "flex",
@@ -643,13 +686,13 @@ export default function Tasks() {
                           className="action-btn"
                           title="View task details"
                           onClick={() => setViewModal(task)}
-                          style={{ color: 'var(--color-ink-muted)' }}
+                          style={{ color: "var(--color-ink-muted)" }}
                         >
                           <i className="fa-solid fa-eye" />
                         </button>
 
                         {/* Approve button — admin/manager always, lead only for tasks they created */}
-                        {can("edit-task") &&
+                        {/* {can("edit-task") &&
                           task.status === "Pending Approval" &&
                           (currentUser.role !== "lead" || task.createdBy === currentUser.name) && (
                             <>
@@ -670,45 +713,98 @@ export default function Tasks() {
                                 <i className="fa-solid fa-xmark" />
                               </button>
                             </>
+                          )} */}
+
+                        {can("edit-task") &&
+                          task.status === "Pending Approval" &&
+                          canApproveTask(task) && (
+                            <>
+                              <button
+                                className="action-btn"
+                                title={`Approve: submitted by ${task.submittedBy ?? "user"}`}
+                                onClick={() => handleApprove(task)}
+                                style={{
+                                  background: "#CCFBF1",
+                                  color: "#0F766E",
+                                  borderColor: "#99F6E4",
+                                }}
+                              >
+                                <i className="fa-solid fa-check" />
+                              </button>
+
+                              <button
+                                className="action-btn"
+                                title="Reject — send back to In Progress"
+                                onClick={() => handleReject(task)}
+                                style={{
+                                  background: "#FEE2E2",
+                                  color: "#DC2626",
+                                  borderColor: "#FECACA",
+                                }}
+                              >
+                                <i className="fa-solid fa-xmark" />
+                              </button>
+                            </>
                           )}
 
                         {/* Blocker response buttons — hide once acknowledged */}
-                        {task.status === "Blocker" && !task.blockerAcknowledgedBy && canRespondToBlocker(task) && (
-                          <>
+                        {task.status === "Blocker" &&
+                          !task.blockerAcknowledgedBy &&
+                          canRespondToBlocker(task) && (
+                            <>
+                              <button
+                                className="action-btn"
+                                title={`Accept blocker${task.blockerReason ? `: ${task.blockerReason}` : ""}`}
+                                onClick={() =>
+                                  handleBlockerResponse(task, "accept")
+                                }
+                                style={{
+                                  background: "#CCFBF1",
+                                  color: "#0F766E",
+                                  borderColor: "#99F6E4",
+                                }}
+                              >
+                                <i className="fa-solid fa-check" />
+                              </button>
+                              <button
+                                className="action-btn"
+                                title="Move back to In Progress"
+                                onClick={() =>
+                                  handleBlockerResponse(task, "in_progress")
+                                }
+                                style={{
+                                  background: "#FEE2E2",
+                                  color: "#DC2626",
+                                  borderColor: "#FECACA",
+                                }}
+                              >
+                                <i className="fa-solid fa-xmark" />
+                              </button>
+                            </>
+                          )}
+                        {can("edit-task") &&
+                          (() => {
+                            const isDelegator = (
+                              task.delegationChain ?? []
+                            ).some((e) => e.from === currentUser.name);
+                            return (
+                              currentUser.role === "admin" ||
+                              (currentUser.role === "manager" &&
+                                (task.createdByRole !== "admin" ||
+                                  isDelegator)) ||
+                              (currentUser.role === "lead" &&
+                                (task.createdBy === currentUser.name ||
+                                  isDelegator))
+                            );
+                          })() && (
                             <button
                               className="action-btn"
-                              title={`Accept blocker${task.blockerReason ? `: ${task.blockerReason}` : ''}`}
-                              onClick={() => handleBlockerResponse(task, 'accept')}
-                              style={{ background: '#CCFBF1', color: '#0F766E', borderColor: '#99F6E4' }}
+                              title="Edit task"
+                              onClick={() => setTaskModal(task)}
                             >
-                              <i className="fa-solid fa-check" />
+                              <i className="fa-solid fa-pen" />
                             </button>
-                            <button
-                              className="action-btn"
-                              title="Move back to In Progress"
-                              onClick={() => handleBlockerResponse(task, 'in_progress')}
-                              style={{ background: '#FEE2E2', color: '#DC2626', borderColor: '#FECACA' }}
-                            >
-                              <i className="fa-solid fa-xmark" />
-                            </button>
-                          </>
-                        )}
-                        {can("edit-task") && (() => {
-                          const isDelegator = (task.delegationChain ?? []).some(e => e.from === currentUser.name)
-                          return (
-                            currentUser.role === "admin" ||
-                            (currentUser.role === "manager" && (task.createdByRole !== "admin" || isDelegator)) ||
-                            (currentUser.role === "lead" && (task.createdBy === currentUser.name || isDelegator))
-                          )
-                        })() && (
-                          <button
-                            className="action-btn"
-                            title="Edit task"
-                            onClick={() => setTaskModal(task)}
-                          >
-                            <i className="fa-solid fa-pen" />
-                          </button>
-                        )}
+                          )}
                         {can("delegate-task") &&
                           task.assignedTo === currentUser.name &&
                           task.status !== "Completed" && (
@@ -731,29 +827,41 @@ export default function Tasks() {
                             </button>
                           )}
                         {/* Escalate — only for overdue tasks, admin/manager only */}
-                        {overdue && (currentUser.role === "admin" || currentUser.role === "manager") && (
-                          <button
-                            className="action-btn"
-                            title="Escalate to MD"
-                            onClick={() => { setEscalateReason(""); setEscalateMdEmail(""); setEscalateModal(task); }}
-                            style={{ background: "#FEF3C7", color: "#B45309", borderColor: "#FDE68A" }}
-                          >
-                            <i className="fa-solid fa-flag" />
-                          </button>
-                        )}
+                        {overdue &&
+                          (currentUser.role === "admin" ||
+                            currentUser.role === "manager") && (
+                            <button
+                              className="action-btn"
+                              title="Escalate to MD"
+                              onClick={() => {
+                                setEscalateReason("");
+                                setEscalateMdEmail("");
+                                setEscalateModal(task);
+                              }}
+                              style={{
+                                background: "#FEF3C7",
+                                color: "#B45309",
+                                borderColor: "#FDE68A",
+                              }}
+                            >
+                              <i className="fa-solid fa-flag" />
+                            </button>
+                          )}
 
                         {can("delete-task") &&
                           (currentUser.role === "admin" ||
-                            (currentUser.role === "manager" && task.createdByRole !== "admin") ||
-                            (currentUser.role === "lead" && task.createdBy === currentUser.name)) && (
-                          <button
-                            className="action-btn danger"
-                            title="Delete task"
-                            onClick={() => setConfirm(task)}
-                          >
-                            <i className="fa-solid fa-trash-can" />
-                          </button>
-                        )}
+                            (currentUser.role === "manager" &&
+                              task.createdByRole !== "admin") ||
+                            (currentUser.role === "lead" &&
+                              task.createdBy === currentUser.name)) && (
+                            <button
+                              className="action-btn danger"
+                              title="Delete task"
+                              onClick={() => setConfirm(task)}
+                            >
+                              <i className="fa-solid fa-trash-can" />
+                            </button>
+                          )}
                       </div>
                     </td>
                   </tr>
@@ -813,36 +921,85 @@ export default function Tasks() {
       {escalateModal && (
         <div
           style={{
-            position: "fixed", inset: 0, zIndex: 300,
+            position: "fixed",
+            inset: 0,
+            zIndex: 300,
             background: "rgba(0,0,0,.45)",
-            display: "flex", alignItems: "center", justifyContent: "center", padding: 20,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: 20,
           }}
           onClick={() => !escalating && setEscalateModal(null)}
         >
           <div
             style={{
-              background: "var(--color-card)", borderRadius: 14, width: "100%", maxWidth: 440,
-              boxShadow: "var(--shadow-lg)", padding: "24px 28px",
+              background: "var(--color-card)",
+              borderRadius: 14,
+              width: "100%",
+              maxWidth: 440,
+              boxShadow: "var(--shadow-lg)",
+              padding: "24px 28px",
             }}
-            onClick={e => e.stopPropagation()}
+            onClick={(e) => e.stopPropagation()}
           >
-            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
-              <span style={{
-                width: 32, height: 32, borderRadius: 8, background: "#FEF3C7",
-                display: "flex", alignItems: "center", justifyContent: "center",
-                color: "#B45309", fontSize: 14, flexShrink: 0,
-              }}>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 10,
+                marginBottom: 6,
+              }}
+            >
+              <span
+                style={{
+                  width: 32,
+                  height: 32,
+                  borderRadius: 8,
+                  background: "#FEF3C7",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: "#B45309",
+                  fontSize: 14,
+                  flexShrink: 0,
+                }}
+              >
                 <i className="fa-solid fa-flag" />
               </span>
-              <div style={{ fontSize: 16, fontWeight: 700, color: "var(--color-ink)" }}>
+              <div
+                style={{
+                  fontSize: 16,
+                  fontWeight: 700,
+                  color: "var(--color-ink)",
+                }}
+              >
                 Escalate to MD
               </div>
             </div>
-            <div style={{ fontSize: 12.5, color: "var(--color-ink-muted)", marginBottom: 4 }}>
-              Task: <strong style={{ color: "var(--color-ink)" }}>{escalateModal.description}</strong>
+            <div
+              style={{
+                fontSize: 12.5,
+                color: "var(--color-ink-muted)",
+                marginBottom: 4,
+              }}
+            >
+              Task:{" "}
+              <strong style={{ color: "var(--color-ink)" }}>
+                {escalateModal.description}
+              </strong>
             </div>
-            <div style={{ fontSize: 12.5, color: "var(--color-ink-muted)", marginBottom: 16 }}>
-              Assigned to: <strong style={{ color: "#DC2626" }}>{escalateModal.assignedTo}</strong>
+            <div
+              style={{
+                fontSize: 12.5,
+                color: "var(--color-ink-muted)",
+                marginBottom: 16,
+              }}
+            >
+              Assigned to:{" "}
+              <strong style={{ color: "#DC2626" }}>
+                {escalateModal.assignedTo}
+              </strong>
             </div>
             <textarea
               autoFocus
@@ -850,29 +1007,50 @@ export default function Tasks() {
               className="form-input"
               placeholder="Reason for escalation — e.g. critical deadline missed, client impact…"
               value={escalateReason}
-              onChange={e => setEscalateReason(e.target.value)}
+              onChange={(e) => setEscalateReason(e.target.value)}
               style={{ resize: "none", width: "100%", marginBottom: 12 }}
             />
-            <label style={{ fontSize: 12, fontWeight: 600, color: "var(--color-ink-muted)", display: "block", marginBottom: 5 }}>
-              MD Email <span style={{ fontWeight: 400, color: "var(--color-ink-soft)" }}>(optional — leave blank to skip)</span>
+            <label
+              style={{
+                fontSize: 12,
+                fontWeight: 600,
+                color: "var(--color-ink-muted)",
+                display: "block",
+                marginBottom: 5,
+              }}
+            >
+              MD Email{" "}
+              <span style={{ fontWeight: 400, color: "var(--color-ink-soft)" }}>
+                (optional — leave blank to skip)
+              </span>
             </label>
             <input
               type="email"
               className="form-input"
               placeholder="e.g. md@integerstech.com"
               value={escalateMdEmail}
-              onChange={e => setEscalateMdEmail(e.target.value)}
+              onChange={(e) => setEscalateMdEmail(e.target.value)}
               style={{ width: "100%", marginBottom: 16 }}
             />
-            <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
-              <button className="btn-secondary" onClick={() => setEscalateModal(null)} disabled={escalating}>
+            <div
+              style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}
+            >
+              <button
+                className="btn-secondary"
+                onClick={() => setEscalateModal(null)}
+                disabled={escalating}
+              >
                 Cancel
               </button>
               <button
                 className="btn-primary"
                 onClick={handleEscalateConfirm}
                 disabled={escalating || !escalateReason.trim()}
-                style={{ background: "#B45309", borderColor: "#B45309", opacity: escalating || !escalateReason.trim() ? 0.6 : 1 }}
+                style={{
+                  background: "#B45309",
+                  borderColor: "#B45309",
+                  opacity: escalating || !escalateReason.trim() ? 0.6 : 1,
+                }}
               >
                 {escalating ? "Sending…" : "Escalate to MD"}
               </button>
@@ -885,23 +1063,45 @@ export default function Tasks() {
       {rejectModal && (
         <div
           style={{
-            position: "fixed", inset: 0, zIndex: 300,
+            position: "fixed",
+            inset: 0,
+            zIndex: 300,
             background: "rgba(0,0,0,.45)",
-            display: "flex", alignItems: "center", justifyContent: "center", padding: 20,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: 20,
           }}
           onClick={() => !rejecting && setRejectModal(null)}
         >
           <div
             style={{
-              background: "var(--color-card)", borderRadius: 14, width: "100%", maxWidth: 420,
-              boxShadow: "var(--shadow-lg)", padding: "24px 28px",
+              background: "var(--color-card)",
+              borderRadius: 14,
+              width: "100%",
+              maxWidth: 420,
+              boxShadow: "var(--shadow-lg)",
+              padding: "24px 28px",
             }}
-            onClick={e => e.stopPropagation()}
+            onClick={(e) => e.stopPropagation()}
           >
-            <div style={{ fontSize: 16, fontWeight: 700, color: "var(--color-ink)", marginBottom: 6 }}>
+            <div
+              style={{
+                fontSize: 16,
+                fontWeight: 700,
+                color: "var(--color-ink)",
+                marginBottom: 6,
+              }}
+            >
               Reject Submission
             </div>
-            <div style={{ fontSize: 13, color: "var(--color-ink-muted)", marginBottom: 16 }}>
+            <div
+              style={{
+                fontSize: 13,
+                color: "var(--color-ink-muted)",
+                marginBottom: 16,
+              }}
+            >
               Provide a reason — the assignee will be notified by email.
             </div>
             <textarea
@@ -910,18 +1110,28 @@ export default function Tasks() {
               className="form-input"
               placeholder="e.g. Needs revision, missing content…"
               value={rejectNote}
-              onChange={e => setRejectNote(e.target.value)}
+              onChange={(e) => setRejectNote(e.target.value)}
               style={{ resize: "none", width: "100%", marginBottom: 16 }}
             />
-            <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
-              <button className="btn-secondary" onClick={() => setRejectModal(null)} disabled={rejecting}>
+            <div
+              style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}
+            >
+              <button
+                className="btn-secondary"
+                onClick={() => setRejectModal(null)}
+                disabled={rejecting}
+              >
                 Cancel
               </button>
               <button
                 className="btn-primary"
                 onClick={handleRejectConfirm}
                 disabled={rejecting || !rejectNote.trim()}
-                style={{ background: "#DC2626", borderColor: "#DC2626", opacity: rejecting || !rejectNote.trim() ? 0.6 : 1 }}
+                style={{
+                  background: "#DC2626",
+                  borderColor: "#DC2626",
+                  opacity: rejecting || !rejectNote.trim() ? 0.6 : 1,
+                }}
               >
                 {rejecting ? "Rejecting…" : "Reject"}
               </button>
@@ -932,8 +1142,6 @@ export default function Tasks() {
     </>
   );
 }
-
-
 
 // import { useState, useMemo } from "react";
 // import { useNavigate } from "react-router-dom";
@@ -954,7 +1162,7 @@ export default function Tasks() {
 // import ProgressModal from "./modals/ProgressModal";
 // import DelegateModal from "./modals/DelegateModal";
 // import CategoryModal from "./modals/CategoryModal";
- 
+
 // const STATUSES = [
 //   "Not Started",
 //   "In Progress",
@@ -965,7 +1173,7 @@ export default function Tasks() {
 //   "Overdue",
 // ];
 // const CLIENT_TYPES = ["B2B", "B2C", "Int"];
- 
+
 // // Dept colour dot
 // function DeptDot({ deptId, departments }) {
 //   const dept = departments.find((d) => d.id === deptId);
@@ -984,7 +1192,7 @@ export default function Tasks() {
 //     />
 //   );
 // }
- 
+
 // // Client type badge
 // function ClientTypeBadge({ types = [] }) {
 //   if (!types.length) return null;
@@ -1018,11 +1226,11 @@ export default function Tasks() {
 //     </div>
 //   );
 // }
- 
+
 // export default function Tasks() {
 //   const { activeDept, can, currentUser, deptParam } = useApp();
 //   const toast = useToast();
- 
+
 //   const [search, setSearch] = useState("");
 //   const [statusF, setStatusF] = useState("");
 //   const [catF, setCatF] = useState("");
@@ -1033,28 +1241,28 @@ export default function Tasks() {
 //   const [confirm, setConfirm] = useState(null);
 //   const [deleting, setDeleting] = useState(false);
 //   const [catModalOpen, setCatModalOpen] = useState(false);
- 
+
 //   const {
 //     data: tasks = [],
 //     loading,
 //     error,
 //     refetch,
 //   } = useFetch(() => tasksApi.list(deptParam()), [activeDept]);
- 
+
 //   // const deptId = currentUser?.department_id
 //   // const { data: categories  = [], refetch: refetchCats } = useFetch(
 //   //   () => categoriesApi.list({ department_id: deptId }),
 //   //   [deptId]
 //   // )
- 
+
 //   const deptId = currentUser?.department_id;
 //   const { data: categories = [], refetch: refetchCats } = useFetch(
 //     () => categoriesApi.list(deptId ? { department_id: deptId } : {}),
 //     [deptId],
 //   );
- 
+
 //   const { data: departments = [] } = useFetch(() => departmentsApi.list(), []);
- 
+
 //   // Client-side filter
 //   const filtered = useMemo(
 //     () =>
@@ -1071,12 +1279,12 @@ export default function Tasks() {
 //       }),
 //     [tasks, search, statusF, catF, clientTypeF],
 //   );
- 
+
 //   const taskCategories = useMemo(
 //     () => [...new Set(tasks.map((t) => t.category))].sort(),
 //     [tasks],
 //   );
- 
+
 //   function onSaved(isNew) {
 //     toast({
 //       message: isNew ? "Task created" : "Task updated",
@@ -1084,12 +1292,12 @@ export default function Tasks() {
 //     });
 //     refetch();
 //   }
- 
+
 //   function onDelegated() {
 //     toast({ message: "Task transferred successfully", type: "success" });
 //     refetch();
 //   }
- 
+
 //   async function handleDelete() {
 //     setDeleting(true);
 //     try {
@@ -1103,10 +1311,10 @@ export default function Tasks() {
 //       setDeleting(false);
 //     }
 //   }
- 
+
 //   const canUpdateProgress = (task) =>
 //     task.assignedTo === currentUser.name && !can("edit-task");
- 
+
 //   async function handleApprove(task) {
 //     try {
 //       await tasksApi.approve(task.id, { approvedBy: currentUser.name });
@@ -1119,7 +1327,7 @@ export default function Tasks() {
 //       toast({ message: e.message, type: "error" });
 //     }
 //   }
- 
+
 //   if (error) {
 //     return (
 //       <div className="section-card">
@@ -1141,7 +1349,7 @@ export default function Tasks() {
 //       </div>
 //     );
 //   }
- 
+
 //   return (
 //     <>
 //       {/* Header */}
@@ -1170,7 +1378,7 @@ export default function Tasks() {
 //           )}
 //         </div>
 //       </div>
- 
+
 //       {/* Client Type pills */}
 //       <div
 //         style={{
@@ -1204,7 +1412,7 @@ export default function Tasks() {
 //           </button>
 //         ))}
 //       </div>
- 
+
 //       {/* Filter bar */}
 //       <div className="filter-bar">
 //         <div className="search-wrap" style={{ flex: 1, minWidth: 200 }}>
@@ -1254,7 +1462,7 @@ export default function Tasks() {
 //           {filtered.length} result{filtered.length !== 1 ? "s" : ""}
 //         </span>
 //       </div>
- 
+
 //       {/* Table */}
 //       <div className="section-card overflow-y-auto p-0">
 //         <div className="table-wrap">
@@ -1295,11 +1503,11 @@ export default function Tasks() {
 //                 const chain = task.delegationChain ?? [];
 //                 const delegated = chain.length > 0;
 //                 const overdue = isOverdue(task);
- 
+
 //                 {
 //                   console.log("filtered: ", filtered);
 //                 }
- 
+
 //                 return (
 //                   <tr key={task.id}>
 //                     {/* Task description */}
@@ -1354,14 +1562,14 @@ export default function Tasks() {
 //                         </div>
 //                       </div>
 //                     </td>
- 
+
 //                     {/* Assigned By */}
 //                     <td>
 //                       <div style={{ fontWeight: 500, fontSize: 13 }}>
 //                         {task.createdBy ?? "—"}
 //                       </div>
 //                     </td>
- 
+
 //                     {/* Assignee */}
 //                     <td>
 //                       <div style={{ fontWeight: 500, fontSize: 13 }}>
@@ -1379,7 +1587,7 @@ export default function Tasks() {
 //                         </div>
 //                       )}
 //                     </td>
- 
+
 //                     {/* Priority */}
 //                     <td>
 //                       {task.priority ? (
@@ -1414,22 +1622,22 @@ export default function Tasks() {
 //                         "—"
 //                       )}
 //                     </td>
- 
+
 //                     {/* Category */}
 //                     <td>
 //                       <span className="tag">{task.category}</span>
 //                     </td>
- 
+
 //                     {/* Client Type */}
 //                     <td>
 //                       <ClientTypeBadge types={task.clientType} />
 //                     </td>
- 
+
 //                     {/* Progress */}
 //                     <td style={{ width: 170 }}>
 //                       <ProgressBar value={task.progress ?? 0} />
 //                     </td>
- 
+
 //                     {/* Due date */}
 //                     <td>
 //                       <span
@@ -1445,7 +1653,7 @@ export default function Tasks() {
 //                         {fmtDate(task.dueDate)}
 //                       </span>
 //                     </td>
- 
+
 //                     {/* Status + submission meta */}
 //                     <td>
 //                       <StatusBadge status={effectiveStatus(task)} />
@@ -1483,7 +1691,7 @@ export default function Tasks() {
 //                         </div>
 //                       )}
 //                     </td>
- 
+
 //                     {/* Actions */}
 //                     <td>
 //                       <div
@@ -1568,7 +1776,7 @@ export default function Tasks() {
 //           </table>
 //         </div>
 //       </div>
- 
+
 //       {/* Modals */}
 //       {taskModal && (
 //         <TaskModal
@@ -1613,5 +1821,3 @@ export default function Tasks() {
 //     </>
 //   );
 // }
- 
- 
